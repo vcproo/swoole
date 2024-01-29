@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div id="content" style="float: left;">
+    </div>
+</body>
+</html>
+<script>
+    // console.log(new Date().getTime())
+    var wsServer = 'ws://192.165.1.209:9502';
+    var websocket = new WebSocket(wsServer);
+    websocket.onopen = function (evt) {
+        websocket.send(JSON.stringify({device_id: '2',type:'init_device_fd'}));
+        // console.log("Connected to WebSocket server.");
+    };
+
+    websocket.onclose = function (evt) {
+        console.log("关闭");
+    };
+
+    websocket.onmessage = function (evt) {
+        console.log(JSON.parse(evt.data))
+        var request = JSON.parse(evt.data)
+       // 获取父元素的引用
+        var parentDiv = document.getElementById('content');
+
+        // 创建一个新的子元素 div
+        var childDiv = document.createElement('div');
+
+        // 设置子元素的内容
+        if(request.type == "init_open"){
+            childDiv.textContent = request.msg+'-'+request.data.fd+" 时间："+new Date();
+        }else{
+            childDiv.textContent = request.msg+" 时间："+new Date();
+        }
+      
+
+        // 将子元素添加到父元素中
+        parentDiv.appendChild(childDiv);
+
+        // console.log('Retrieved data from server: ' + evt.data);
+    };
+
+    websocket.onerror = function (evt, e) {
+        console.log('error: ' + evt.data);
+    };
+</script>

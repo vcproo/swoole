@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chat Page</title>
+  <style>
+    /* 聊天消息容器 */
+    .chat-container {
+      width: 400px;
+      height: 500px;
+      border: 1px solid #ccc;
+      overflow-y: scroll;
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+    }
+
+    /* 单条聊天消息样式 */
+    .message {
+      padding: 10px;
+      margin-bottom: 10px;
+      background-color: #f2f2f2;
+      max-width: 70%;
+      align-self: flex-start;
+    }
+
+    /* 发送者样式 */
+    .sender {
+      font-weight: bold;
+      color: blue;
+    }
+
+    /* 接收者样式 */
+    .receiver {
+      font-weight: bold;
+      color: green;
+      align-self: flex-end;
+    }
+
+    /* 加入提示样式 */
+    .join-message {
+      text-align: center;
+      font-style: italic;
+      color: gray;
+    }
+
+    /* 输入框和发送按钮容器 */
+    .input-container {
+      margin-top: 10px;
+    }
+
+    /* 输入框样式 */
+    .input-field {
+      width: 300px;
+      padding: 5px;
+    }
+
+    /* 发送按钮样式 */
+    .send-button {
+      padding: 5px 10px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container" id="msglist">
+    <!-- <div class="join-message">王五 加入聊天</div>
+    <div class="message receiver">你: Hi John, how are you?</div>
+    <div class="message sender">张三: Hello!</div>
+    <div class="message receiver">你: That's good to hear!</div>
+    <div class="message sender">李四: I'm doing great, thanks!</div> -->
+  </div>
+
+  <div class="input-container">
+    <span id="user_name"></span>
+    <input type="text" id="youmsg" class="input-field" placeholder="输入消息">
+    <button class="send-button" id="send">发送</button>
+  </div>
+</body>
+</html>
+<script>
+    var fd
+    var name
+    //发送按钮
+    document.getElementById('send').onclick = function(){
+        sendMsg()
+    }
+    // 获取输入框元素
+    var inputBox = document.getElementById('youmsg');
+    // 监听键盘按下事件
+    inputBox.addEventListener('keydown', function(event) {
+        // 检查按下的键是否是回车键
+        if (event.keyCode === 13) {
+            sendMsg()
+        }
+    });
+    function sendMsg(){
+        var msg = document.getElementById('youmsg').value
+        document.getElementById('youmsg').value = ''
+        if(msg){
+            websocket.send(JSON.stringify({msg: msg,type:'msg',fd:fd,name:name}));
+        }
+    }
+    var wsServer = 'ws://192.165.1.209:9502';
+    var websocket = new WebSocket(wsServer);
+    websocket.onopen = function (evt) {
+        // websocket.send('1111');
+        // console.log("Connected to WebSocket server.");
+    };
+
+    websocket.onclose = function (evt) {
+        var msgList = document.getElementById('msglist')
+            var childDiv = document.createElement('div');
+            childDiv.className = 'join-message'
+            childDiv.textContent = '服务器异常，请刷新重试'
+            msgList.appendChild(childDiv);
+           
+    };
+
+    websocket.onmessage = function (evt) {
+        // console.log(JSON.parse(evt.data))
+        var request = JSON.parse(evt.data)
+        //初始分配用户和id
+        if(request.type == 'init'){
+            document.getElementById('user_name').innerHTML = request.name
+            fd = request.fd
+            name = request.name
+        }
+        //用户进入房间提示
+        if(request.type == 'enter'){
+            var msgList = document.getElementById('msglist')
+            var childDiv = document.createElement('div');
+            childDiv.className = 'join-message'
+            childDiv.textContent = request.msg
+            msgList.appendChild(childDiv);
+            setTimeout(function() {
+                msgList.removeChild(childDiv);
+            }, 1500);
+
+        }
+        //发送消息
+        if(request.type == 'msg'){
+            var msgList = document.getElementById('msglist')
+            var childDiv = document.createElement('div');
+            //自己发的消息
+            if(request.fd == fd){
+                childDiv.className = 'message receiver'
+                childDiv.textContent = request.msg
+            }else{
+                childDiv.className = 'message sender'
+                childDiv.textContent = request.name+':'+request.msg
+            }
+            
+            msgList.appendChild(childDiv);
+        }   
+        //离开房间
+        if(request.type == 'close'){
+            var msgList = document.getElementById('msglist')
+            var childDiv = document.createElement('div');
+            childDiv.className = 'join-message'
+            childDiv.textContent = request.msg
+            msgList.appendChild(childDiv);
+            setTimeout(function() {
+                msgList.removeChild(childDiv);
+            }, 1500);
+
+        }
+       
+    
+    };
+
+    websocket.onerror = function (evt, e) {
+        console.log('error: ' + evt.data);
+    };
+</script>
